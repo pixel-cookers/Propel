@@ -28,13 +28,15 @@ class ConcreteInheritanceBehavior extends Behavior
         'extends'             => '',
         'descendant_column'   => 'descendant_class',
         'copy_data_to_parent' => 'true',
-        'schema'              => ''
+        'schema'              => '',
+        'excluded_parent_behavior' => 'nested_set',
     );
 
     public function modifyTable()
     {
         $table = $this->getTable();
         $parentTable = $this->getParentTable();
+        $excludedParentBehavior = explode(',', $this->parameters['excluded_parent_behavior']);
 
         if ($this->isCopyData()) {
             // tell the parent table that it has a descendant
@@ -104,14 +106,13 @@ class ConcreteInheritanceBehavior extends Behavior
 
         // add the Behaviors of the parent table
         foreach ($parentTable->getBehaviors() as $behavior) {
-            if ($behavior->getName() == 'concrete_inheritance_parent' || $behavior->getName() == 'concrete_inheritance') {
+            if (in_array($behavior->getName(), $excludedParentBehavior) || $behavior->getName() == 'concrete_inheritance_parent' || $behavior->getName() == 'concrete_inheritance') {
                 continue;
             }
             $copiedBehavior = clone $behavior;
             $copiedBehavior->setTableModified(false);
             $this->getTable()->addBehavior($copiedBehavior);
         }
-
     }
 
     protected function getParentTable()
@@ -119,7 +120,7 @@ class ConcreteInheritanceBehavior extends Behavior
         $database = $this->getTable()->getDatabase();
         $tableName = $database->getTablePrefix() . $this->getParameter('extends');
         if ($database->getPlatform()->supportsSchemas() && $this->getParameter('schema')) {
-            $tableName = $this->getParameter('schema').'.'.$tableName;
+            $tableName = $this->getParameter('schema') . '.' . $tableName;
         }
 
         return $database->getTable($tableName);
@@ -204,7 +205,7 @@ public function getParentOrCreate(\$con = null)
     if (\$this->isNew()) {
         if (\$this->isPrimaryKeyNull()) {
             //this prevent issue with deep copy & save parent object
-            if (null === (\$parent = \$this->get". $parentClass . "(\$con))) {
+            if (null === (\$parent = \$this->get" . $parentClass . "(\$con))) {
                 \$parent = new " . $parentClass . "();
             }
             \$parent->set" . $this->getParentTable()->getColumn($this->getParameter('descendant_column'))->getPhpName() . "('" . $this->builder->getStubObjectBuilder()->getFullyQualifiedClassname() . "');
@@ -266,5 +267,4 @@ public function getSyncParent(\$con = null)
 }
 ";
     }
-
 }
